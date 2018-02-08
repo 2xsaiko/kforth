@@ -238,7 +238,6 @@ internal fun initDictionary(d: Dictionary) {
     "$quitPtrAddr @ EXECUTE"()
   }
 
-
   // TODO
   // "-TRAILING" compose { }
 
@@ -423,6 +422,10 @@ internal fun initDictionary(d: Dictionary) {
 
     label("parse-fail") // wptr result
     "NIP"()
+    "STATE @"()
+    cbranch("compile_num")
+    "'CFA LIT , ,"()
+    label("compile_num")
     branch("loop") // result
 
     label("end") // name
@@ -492,19 +495,38 @@ internal fun initDictionary(d: Dictionary) {
     "BL WORD COUNT NIP 1+ ALLOT"()
   }
 
-  "CREATE" compose { "HEADER REVEAL ${d.DOVAR_ptr} ,"() }
+  "CREATE" compose { "HEADER REVEAL 'CFA DOVAR ,"() }
   "VARIABLE" compose { "CREATE CELL ALLOT"() }
 
-  "(CONSTANT)" { d.createConstant(readCStr(data.pop()), data.pop()) }
-  "CONSTANT" compose { "BL WORD (CONSTANT)"() }
-  d.setFlags(d.findWord("(CONSTANT)"), HIDDEN)
+  "(CON)" { d.createConstant(readCStr(data.pop()), data.pop()) }
+  "CONSTANT" compose { "BL WORD (CON)"() }
+  d.setFlags(d.findWord("(CON)"), HIDDEN)
 
   "]" compose { "STATE ON"() }
   "[" compose { "STATE OFF"() } IS IMMEDIATE
-  ";" compose { "${d.EXIT_ptr} , REVEAL ["() } IS IMMEDIATE
-  ":" compose { "HEADER ${d.DOCOL_ptr} , ]"() }
+  ";" compose { "'CFA EXIT , REVEAL ["() } IS IMMEDIATE
+  ":" compose { "HEADER 'CFA DOCOL , ]"() }
 
   "RECURSE" compose { "LATESTXT ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "LITERAL" compose { "'CFA LIT , ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+
+  ">MARK" compose { "HERE 0 ,"() } IS COMPILE_ONLY
+  ">RESOLVE" compose { "DUP HERE SWAP - SWAP !"() } IS COMPILE_ONLY
+  "<MARK" compose { "HERE"() } IS COMPILE_ONLY
+  "<RESOLVE" compose { "HERE - ,"() } IS COMPILE_ONLY
+
+  "IF" compose { "'CFA 0BRANCH , >MARK"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "UNLESS" compose { "'CFA 0= , IF"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "THEN" compose { ">RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "ELSE" compose { "'CFA BRANCH , >MARK SWAP >RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+
+  "BEGIN" compose { "<MARK"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "UNTIL" compose { "'CFA 0BRANCH , <RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "AGAIN" compose { "'CFA BRANCH , <RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "WHILE" compose { "'CFA 0BRANCH , >MARK"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "REPEAT" compose { "'CFA BRANCH , SWAP <RESOLVE >RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+
+  // TODO do-loop
 
   "WORDS" compose {
     "LATEST @"()

@@ -10,12 +10,40 @@ class ComposedWordDSL internal constructor(private val d: Dictionary) {
   private var list: List<Compilable> = emptyList()
   private var labels: Map<str, i32> = emptyMap()
 
+  private lateinit var words: List<str>
+  private var pos = 0
+  private fun end(): bool = pos == words.size
+  private fun getw(): str {
+    if (end()) error("Expected next word, but the buffer is empty D:")
+    return words[pos++]
+  }
+
   // compile words, seperated by space, into definition
   operator fun str.invoke() {
-    list += split(" ").map {
-      d.findWord(it).takeIf { it != 0 }?.let(::CompilableWord)
-      ?: it.toIntOrNull()?.let(::CompilableLit)
-      ?: error("Unknown token: $it")
+    words = split(" ").filter(String::isNotBlank)
+    pos = 0
+
+    while (!end()) {
+      val w = getw()
+      when (w) {
+        "'"    -> {
+          val target = getw()
+          val tptr = d.findWord(target)
+          if (tptr == 0) error("Unknown token: $target")
+          list += CompilableLit(tptr)
+        }
+        "'CFA" -> {
+          val target = getw()
+          val tptr = d.findWord(target)
+          if (tptr == 0) error("Unknown token: $target")
+          list += CompilableLit(d.toCfa(tptr))
+        }
+        else   -> {
+          list += d.findWord(w).takeIf { it != 0 }?.let(::CompilableWord)
+            ?: w.toIntOrNull()?.let(::CompilableLit)
+            ?: error("Unknown token: $w")
+        }
+      }
     }
   }
 
