@@ -32,21 +32,21 @@ class MemoryImpl(override val size: i32) : Memory {
   }
 }
 
-//private class MemoryWindow(private val parent: Memory, private val pos: i32, override val size: i32) : Memory {
-//  override fun get(addr: i32): i8 {
-//    return when (addr) {
-//      in 0 until size -> parent[addr + pos]
-//      else            -> 0
-//    }
-//  }
+// private class MemoryWindow(private val parent: Memory, private val pos: i32, override val size: i32) : Memory {
+//   override fun get(addr: i32): i8 {
+//     return when (addr) {
+//       in 0 until size -> parent[addr + pos]
+//       else            -> 0
+//     }
+//   }
 //
-//  override fun set(addr: i32, data: i8) {
-//    when (addr) {
-//      in 0 until size -> parent[addr + pos] = data
-//      else            -> Unit
-//    }
-//  }
-//}
+//   override fun set(addr: i32, data: i8) {
+//     when (addr) {
+//       in 0 until size -> parent[addr + pos] = data
+//       else            -> Unit
+//     }
+//   }
+// }
 
 fun Memory.write16(addr: i32, data: i16) {
   data.asBytes().withIndex().forEach { (index, value) -> set(addr + index, value) }

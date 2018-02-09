@@ -528,6 +528,12 @@ internal fun initDictionary(d: Dictionary) {
 
   // TODO do-loop
 
+  "LATER>" compose { "'CFA R> ,  'CFA EXECUTE ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+
+  "(S\")" { data.push(fip + 1); data.push(mem[fip].i); fip += mem[fip] + 1 } IS COMPILE_ONLY
+  "S\"" compose { "'CFA (S\") ,  ${'"'.b} WORD COUNT 1+ ALLOT DROP"() } IS (IMMEDIATE or COMPILE_ONLY)
+  ".\"" compose { "S\"  'CFA TYPE ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+
   "WORDS" compose {
     "LATEST @"()
 
