@@ -24,6 +24,8 @@ internal fun initDictionary(d: Dictionary) {
     return d.latest
   }
 
+  infix fun str.compose(def:str) = this compose { def() }
+
   infix fun i32.CONSTANT(name: str) = d.createConstant(name, this)
   infix fun i32.VARIABLE(name: str) = d.createVariable(name, this)
 
@@ -139,11 +141,14 @@ internal fun initDictionary(d: Dictionary) {
   "AND" { data.push(data.pop() and data.pop()) }
   "OR" { data.push(data.pop() or data.pop()) }
   "XOR" { data.push(data.pop() xor data.pop()) }
+  "LSHIFT" { data.swap(); data.push(data.pop() shl data.pop()) }
+  "RSHIFT" { data.swap(); data.push(data.pop() ushr data.pop()) }
 
   "DEPTH" { data.push(data.depth()) }
   "DUP" { data.push(data.peek()) }
   "?DUP" { data.peek().takeIf { it != 0 }?.also(data::push) }
   "2DUP" { data.push(data.indexedPeek(1)); data.push(data.indexedPeek(1)) }
+  "?2DUP" { Pair(data.peek(), data.indexedPeek(1)).takeIf { it.first != it.second }?.also { data.push(it.second); data.push(it.first) } }
   "DROP" { data.pop() }
   "2DROP" { data.pop(); data.pop() }
   "SWAP" { data.swap() }
@@ -173,16 +178,16 @@ internal fun initDictionary(d: Dictionary) {
   "C@" { data.push(mem[data.pop()].i) }
   "C!" { mem[data.pop()] = data.pop().b }
   "C+!" { data.pop().also { addr -> mem[addr] = (mem[addr] + data.pop()).b } }
-  "OFF" compose { "FALSE SWAP !"() }
-  "ON" compose { "TRUE SWAP !"() }
+  "OFF" compose "FALSE SWAP !"
+  "ON" compose "TRUE SWAP !"
   "CELLS" { data.push(cellsize * data.pop()) }
-  "CELL+" compose { "CELL +"() }
+  "CELL+" compose "CELL +"
   "ALLOT" { dict.allot(data.pop()) }
   "," { dict.append32(data.pop()) }
   "C," { dict.append8(data.pop().b) }
   ">CFA" { data.push(dict.toCfa(data.pop())) }
   ">DFA" { data.push(data.pop() + 4) }
-  "LATESTXT" compose { "LATEST @ >CFA"() }
+  "LATESTXT" compose "LATEST @ >CFA"
 
   "FILL" {
     val b = data.pop().b
@@ -192,9 +197,9 @@ internal fun initDictionary(d: Dictionary) {
   }
 
   10 VARIABLE "BASE"
-  "HEX" compose { "16 BASE !"() }
-  "DECIMAL" compose { "10 BASE !"() }
-  "BINARY" compose { "2 BASE !"() }
+  "HEX" compose "16 BASE !"
+  "DECIMAL" compose "10 BASE !"
+  "BINARY" compose "2 BASE !"
 
   // TODO
   "XKEY?" { data.push(term.read()?.i ?: 0) }
@@ -203,12 +208,12 @@ internal fun initDictionary(d: Dictionary) {
   "KEY" { data.push(term.readBlocking().b.i) }
 
   "XEMIT" { term.write(data.pop().c) }
-  "EMIT" compose { "255 AND XEMIT"() }
-  "COUNT" compose { "DUP 1+ SWAP C@"() }
+  "EMIT" compose "255 AND XEMIT"
+  "COUNT" compose "DUP 1+ SWAP C@"
   "." { data.pop().toString().forEach(term::write); term.write(' ') } // TODO: real numeric output!
-  "CR" compose { "NEWLINE EMIT"() }
-  "SPACE" compose { "BL EMIT"() }
-  "?" compose { "@ ."() }
+  "CR" compose "NEWLINE EMIT"
+  "SPACE" compose "BL EMIT"
+  "?" compose "@ ."
   ".S" {
     val depth = data.depth()
     term.write('<')
@@ -226,7 +231,7 @@ internal fun initDictionary(d: Dictionary) {
   "TIME&DATE" { Instant.now().atZone(ZoneId.systemDefault()).let { listOf(it.second, it.minute, it.hour, it.dayOfMonth, it.monthValue, it.year).forEach(data::push) } }
   "UTIME" { data.push64(System.currentTimeMillis()) }
 
-  "FREE" compose { "HEAP-SIZE HERE -"() }
+  "FREE" compose "HEAP-SIZE HERE -"
 
   "BYE" { "o/\n".forEach(term::write); stop() }
 
@@ -351,10 +356,10 @@ internal fun initDictionary(d: Dictionary) {
     }
   }
 
-  "REVEAL" compose { "LATEST @ CELL+ DUP C@ (FLAG-HIDDEN) NOT AND SWAP C!"() }
-  "HIDE" compose { "LATEST @ CELL+ DUP C@ (FLAG-HIDDEN) OR SWAP C!"() }
-  "COMPILE-ONLY" compose { "LATEST @ CELL+ DUP C@ (FLAG-CO) OR SWAP C!"() } IS IMMEDIATE
-  "IMMEDIATE" compose { "LATEST @ CELL+ DUP C@ (FLAG-IMMED) OR SWAP C!"() } IS IMMEDIATE
+  "REVEAL" compose "LATEST @ >DFA DUP C@ (FLAG-HIDDEN) NOT AND SWAP C!"
+  "HIDE" compose "LATEST @ >DFA DUP C@ (FLAG-HIDDEN) OR SWAP C!"
+  "COMPILE-ONLY" compose "LATEST @ >DFA DUP C@ (FLAG-CO) OR SWAP C!" IS IMMEDIATE
+  "IMMEDIATE" compose "LATEST @ >DFA DUP C@ (FLAG-IMMED) OR SWAP C!" IS IMMEDIATE
 
   val msgStackUnderflow = d.here
   d.appendStr("Stack empty")
@@ -484,8 +489,8 @@ internal fun initDictionary(d: Dictionary) {
   }
   d.COLD_ptr = d.toCfa(d.latest)
 
-  "\\" compose { "1 WORD DROP"() }
-  "(" compose { "${')'.b} WORD DROP"() }
+  "\\" compose "1 WORD DROP"
+  "(" compose "${')'.b} WORD DROP"
 
   "HEADER" compose {
     "HERE"()
@@ -495,44 +500,48 @@ internal fun initDictionary(d: Dictionary) {
     "BL WORD COUNT NIP 1+ ALLOT"()
   }
 
-  "CREATE" compose { "HEADER REVEAL 'CFA DOVAR ,"() }
-  "VARIABLE" compose { "CREATE CELL ALLOT"() }
+  "CREATE" compose "HEADER REVEAL 'CFA DOVAR ,"
+  "VARIABLE" compose "CREATE CELL ALLOT"
 
   "(CON)" { d.createConstant(readCStr(data.pop()), data.pop()) }
-  "CONSTANT" compose { "BL WORD (CON)"() }
+  "CONSTANT" compose "BL WORD (CON)"
   d.setFlags(d.findWord("(CON)"), HIDDEN)
 
-  "]" compose { "STATE ON"() }
-  "[" compose { "STATE OFF"() } IS IMMEDIATE
-  ";" compose { "'CFA EXIT , REVEAL ["() } IS IMMEDIATE
-  ":" compose { "HEADER 'CFA DOCOL , ]"() }
+  "]" compose "STATE ON"
+  "[" compose "STATE OFF" IS IMMEDIATE
+  ";" compose "'CFA EXIT , REVEAL [" IS IMMEDIATE
+  ":" compose "HEADER 'CFA DOCOL , ]"
 
-  "RECURSE" compose { "LATESTXT ,"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "LITERAL" compose { "'CFA LIT , ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "RECURSE" compose "LATESTXT ," IS (IMMEDIATE or COMPILE_ONLY)
+  "LITERAL" compose "'CFA LIT , ," IS (IMMEDIATE or COMPILE_ONLY)
 
-  ">MARK" compose { "HERE 0 ,"() } IS COMPILE_ONLY
-  ">RESOLVE" compose { "DUP HERE SWAP - SWAP !"() } IS COMPILE_ONLY
-  "<MARK" compose { "HERE"() } IS COMPILE_ONLY
-  "<RESOLVE" compose { "HERE - ,"() } IS COMPILE_ONLY
+  ">MARK" compose "HERE 0 ," IS COMPILE_ONLY
+  ">RESOLVE" compose "DUP HERE SWAP - SWAP !" IS COMPILE_ONLY
+  "<MARK" compose "HERE" IS COMPILE_ONLY
+  "<RESOLVE" compose "HERE - ," IS COMPILE_ONLY
 
-  "IF" compose { "'CFA 0BRANCH , >MARK"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "UNLESS" compose { "'CFA 0= , IF"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "THEN" compose { ">RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "ELSE" compose { "'CFA BRANCH , >MARK SWAP >RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "IF" compose "'CFA 0BRANCH , >MARK" IS (IMMEDIATE or COMPILE_ONLY)
+  "UNLESS" compose "'CFA 0= , IF" IS (IMMEDIATE or COMPILE_ONLY)
+  "THEN" compose ">RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "ELSE" compose "'CFA BRANCH , >MARK SWAP >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
 
-  "BEGIN" compose { "<MARK"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "UNTIL" compose { "'CFA 0BRANCH , <RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "AGAIN" compose { "'CFA BRANCH , <RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "WHILE" compose { "'CFA 0BRANCH , >MARK"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "REPEAT" compose { "'CFA BRANCH , SWAP <RESOLVE >RESOLVE"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "BEGIN" compose "<MARK" IS (IMMEDIATE or COMPILE_ONLY)
+  "UNTIL" compose "'CFA 0BRANCH , <RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "AGAIN" compose "'CFA BRANCH , <RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "WHILE" compose "'CFA 0BRANCH , >MARK" IS (IMMEDIATE or COMPILE_ONLY)
+  "REPEAT" compose "'CFA BRANCH , SWAP <RESOLVE >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
 
   // TODO do-loop
+  //  "DO" compose { "0 HERE  'CFA 2>R ,"()  } IS (IMMEDIATE or COMPILE_ONLY)
+  //  "?DO" compose { "'CFA ?2DUP ,  'CFA <> ,  'CFA 0BRANCH ,  HERE  'CFA 0 ,  HERE  'CFA 2>R ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  //  "+LOOP" compose { ""() } IS (IMMEDIATE or COMPILE_ONLY)
+  //  "LOOP" compose { "'CFA 1 , +LOOP"()} IS (IMMEDIATE or COMPILE_ONLY)
 
-  "LATER>" compose { "'CFA R> ,  'CFA EXECUTE ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "LATER>" compose "'CFA R> ,  'CFA EXECUTE ," IS (IMMEDIATE or COMPILE_ONLY)
 
   "(S\")" { data.push(fip + 1); data.push(mem[fip].i); fip += mem[fip] + 1 } IS COMPILE_ONLY
-  "S\"" compose { "'CFA (S\") ,  ${'"'.b} WORD COUNT 1+ ALLOT DROP"() } IS (IMMEDIATE or COMPILE_ONLY)
-  ".\"" compose { "S\"  'CFA TYPE ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "S\"" compose "'CFA (S\") ,  ${'"'.b} WORD COUNT 1+ ALLOT DROP" IS (IMMEDIATE or COMPILE_ONLY)
+  ".\"" compose "S\"  'CFA TYPE ," IS (IMMEDIATE or COMPILE_ONLY)
 
   "WORDS" compose {
     "LATEST @"()
