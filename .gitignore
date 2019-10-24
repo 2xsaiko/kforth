@@ -2,4 +2,9 @@
 /build/
 /out/
 
-/kforth.iws
+/*.iws
+/*.iml
+/*.ipr
+/.idea
+
+/*.bin
