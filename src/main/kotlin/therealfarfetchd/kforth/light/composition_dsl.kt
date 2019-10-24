@@ -32,12 +32,6 @@ class ComposedWordDSL internal constructor(private val d: Dictionary) {
           if (tptr == 0) error("Unknown token: $target")
           list += CompilableLit(tptr)
         }
-        "'CFA" -> {
-          val target = getw()
-          val tptr = d.findWord(target)
-          if (tptr == 0) error("Unknown token: $target")
-          list += CompilableLit(d.toCfa(tptr))
-        }
         else   -> {
           list += d.findWord(w).takeIf { it != 0 }?.let(::CompilableWord)
             ?: w.toIntOrNull()?.let(::CompilableLit)

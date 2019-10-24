@@ -24,12 +24,13 @@ internal fun initDictionary(d: Dictionary) {
     return d.latest
   }
 
-  infix fun str.compose(def:str) = this compose { def() }
+  infix fun str.compose(def: str) = this compose { def() }
 
   infix fun i32.CONSTANT(name: str) = d.createConstant(name, this)
   infix fun i32.VARIABLE(name: str) = d.createVariable(name, this)
 
   infix fun i32.IS(flags: i8) = d.setFlags(this, flags)
+  infix fun str.IS(flags: i8) = d.setFlags(d.findWord(this), flags)
 
   fun Forth.readCStr(addr: i32): str =
     (addr + 1 until addr + 1 + mem[addr].i).map(mem::get).fold("") { acc, a -> acc + a.c }
@@ -104,14 +105,17 @@ internal fun initDictionary(d: Dictionary) {
   "+" { data.push(data.pop() + data.pop()) }
   "1+" { data.push(data.pop().inc()) }
   "1-" { data.push(data.pop().dec()) }
-  "-" { data.swap(); data.push(data.pop() - data.pop()) }
+  "-" { data.push(-data.pop() + data.pop()) }
   "2+" { data.push(data.pop() + 2) }
   "2-" { data.push(data.pop() - 2) }
   "*" { data.push(data.pop() * data.pop()) }
   "2*" { data.push(data.pop() * 2) }
   "/" { data.swap(); data.push(data.pop() / data.pop()) }
   "2/" { data.push(data.pop() / 2) }
+  "*/" { data.pop().also { div -> data.push(((data.pop().toLong() * data.pop().toLong()) / div).i) } }
+  "*/MOD" { data.pop().also { div -> data.push(((data.pop().toLong() * data.pop().toLong()) % div).i); data.push(((data.pop().toLong() * data.pop().toLong()) / div).i) } }
   "MOD" { data.swap(); data.push(data.pop() % data.pop()) }
+  "M*" { data.push64(data.pop().toLong() * data.pop().toLong()) }
   "NEGATE" { data.push(-data.pop()) }
   "ABS" { data.push(abs(data.pop())) }
   "MIN" { data.push(minOf(data.pop(), data.pop())) }
@@ -120,7 +124,15 @@ internal fun initDictionary(d: Dictionary) {
   "S>D" { data.peek().also { data.push(if (it < 0) -1 else 0) } }
   "D>S" { data.pop() }
   "D+" { data.push64(data.pop64() + data.pop64()) }
-  "D-" { data.swap64(); data.push64(data.pop64() - data.pop64()) }
+  "D1+" { data.push64(data.pop64().inc()) }
+  "D1-" { data.push64(data.pop64().dec()) }
+  "D-" { data.push64(-data.pop64() + data.pop64()) }
+  "D2+" { data.push64(data.pop64() + 2) }
+  "D2-" { data.push64(data.pop64() - 2) }
+  "D*"  { data.push64(data.pop64() * data.pop64()) }
+  "D2*" { data.push64(data.pop64() * 2) }
+  "D/" { data.swap64();data.push64(data.pop64() / data.pop64()) }
+  "D2/" { data.push64(data.pop64() / 2) }
   "DNEGATE" { data.push64(-data.pop64()) }
   "DABS" { data.push64(abs(data.pop64())) }
   "DMIN" { data.push64(minOf(data.pop64(), data.pop64())) }
@@ -136,6 +148,17 @@ internal fun initDictionary(d: Dictionary) {
   ">" { data.push(fb(data.pop() < data.pop())) }
   ">=" { data.push(fb(data.pop() <= data.pop())) }
   "<=" { data.push(fb(data.pop() >= data.pop())) }
+
+  "D=" { data.push(fb(data.pop64() == data.pop64())) }
+  "D<>" { data.push(fb(data.pop64() != data.pop64())) }
+  "D0<" { data.push(fb(data.pop64() < 0L)) }
+  "D0=" { data.push(fb(data.pop64() == 0L)) }
+  "D0<>" { data.push(fb(data.pop64() != 0L)) }
+  "D0<" { data.push(fb(data.pop64() > 0L)) }
+  "D<" { data.push(fb(data.pop64() > data.pop64())) }
+  "D>" { data.push(fb(data.pop64() < data.pop64())) }
+  "D>=" { data.push(fb(data.pop64() <= data.pop64())) }
+  "D<=" { data.push(fb(data.pop64() >= data.pop64())) }
 
   "NOT" { data.push(data.pop().inv()) }
   "AND" { data.push(data.pop() and data.pop()) }
@@ -172,21 +195,24 @@ internal fun initDictionary(d: Dictionary) {
   "J" { data.push(ret.indexedPeek(3)) }
   "K" { data.push(ret.indexedPeek(5)) }
 
+  "CELLS" { data.push(cellsize * data.pop()) }
+  "CELL+" compose "CELL +"
   "@" { data.push(mem.read32(data.pop())) }
   "!" { mem.write32(data.pop(), data.pop()) }
   "+!" { data.pop().also { addr -> mem.write32(addr, mem.read32(addr) + data.pop()) } }
   "C@" { data.push(mem[data.pop()].i) }
   "C!" { mem[data.pop()] = data.pop().b }
   "C+!" { data.pop().also { addr -> mem[addr] = (mem[addr] + data.pop()).b } }
+  "2@" compose "DUP CELL+ @ SWAP @"
+  "2!" compose "SWAP OVER ! CELL+ !"
   "OFF" compose "FALSE SWAP !"
   "ON" compose "TRUE SWAP !"
-  "CELLS" { data.push(cellsize * data.pop()) }
-  "CELL+" compose "CELL +"
   "ALLOT" { dict.allot(data.pop()) }
-  "," { dict.append32(data.pop()) }
-  "C," { dict.append8(data.pop().b) }
   ">CFA" { data.push(dict.toCfa(data.pop())) }
   ">DFA" { data.push(data.pop() + 4) }
+  "," { dict.append32(data.pop()) }
+  "C," { dict.append8(data.pop().b) }
+  "CFA," compose ">CFA ,"
   "LATESTXT" compose "LATEST @ >CFA"
 
   "FILL" {
@@ -194,6 +220,30 @@ internal fun initDictionary(d: Dictionary) {
     val len = data.pop()
     val addr = data.pop()
     (addr until addr + len.l).forEach { mem[it.i] = b }
+  }
+
+  "CMOVE" {
+    val len = data.pop()
+    val dest = data.pop()
+    val src = data.pop()
+    for (i in 0 until len)
+      mem[dest + i] = mem[src + i]
+  }
+
+  "CMOVE>" {
+    val len = data.pop()
+    val dest = data.pop()
+    val src = data.pop()
+    for (i in (len - 1) downTo 0)
+      mem[dest + i] = mem[src + i]
+  }
+
+  "MOVE" compose {
+    "2 PICK 1 PICK >"()
+    cbranch("a")
+    "CMOVE EXIT"()
+    label("a")
+    "CMOVE>"()
   }
 
   10 VARIABLE "BASE"
@@ -211,6 +261,7 @@ internal fun initDictionary(d: Dictionary) {
   "EMIT" compose "255 AND XEMIT"
   "COUNT" compose "DUP 1+ SWAP C@"
   "." { data.pop().toString().forEach(term::write); term.write(' ') } // TODO: real numeric output!
+  "D." { data.pop64().toString().forEach(term::write); term.write(' ') } // TODO: real numeric output!
   "CR" compose "NEWLINE EMIT"
   "SPACE" compose "BL EMIT"
   "?" compose "@ ."
@@ -244,7 +295,7 @@ internal fun initDictionary(d: Dictionary) {
   }
 
   // TODO
-  // "-TRAILING" compose { }
+  // "-TRAILING" compose ""
 
   val tibSize = 256
   tibSize CONSTANT "TIB-SIZE"
@@ -310,8 +361,6 @@ internal fun initDictionary(d: Dictionary) {
     label("nochars")
     "C@"()
   }
-
-  d.setFlags(d.findWord("NEXT-CHAR"), HIDDEN)
 
   "FIND" {
     val saddr = data.pop()
@@ -429,7 +478,7 @@ internal fun initDictionary(d: Dictionary) {
     "NIP"()
     "STATE @"()
     cbranch("compile_num")
-    "'CFA LIT , ,"()
+    "' LIT CFA, ,"()
     label("compile_num")
     branch("loop") // result
 
@@ -489,8 +538,8 @@ internal fun initDictionary(d: Dictionary) {
   }
   d.COLD_ptr = d.toCfa(d.latest)
 
-  "\\" compose "1 WORD DROP"
-  "(" compose "${')'.b} WORD DROP"
+  "\\" compose "1 WORD DROP" IS IMMEDIATE
+  "(" compose "${')'.b} WORD DROP" IS IMMEDIATE
 
   "HEADER" compose {
     "HERE"()
@@ -500,36 +549,36 @@ internal fun initDictionary(d: Dictionary) {
     "BL WORD COUNT NIP 1+ ALLOT"()
   }
 
-  "CREATE" compose "HEADER REVEAL 'CFA DOVAR ,"
+  "CREATE" compose "HEADER REVEAL ' DOVAR CFA,"
   "VARIABLE" compose "CREATE CELL ALLOT"
 
   "(CON)" { d.createConstant(readCStr(data.pop()), data.pop()) }
   "CONSTANT" compose "BL WORD (CON)"
-  d.setFlags(d.findWord("(CON)"), HIDDEN)
 
   "]" compose "STATE ON"
   "[" compose "STATE OFF" IS IMMEDIATE
-  ";" compose "'CFA EXIT , REVEAL [" IS IMMEDIATE
-  ":" compose "HEADER 'CFA DOCOL , ]"
+  ";" compose "' EXIT CFA, REVEAL [" IS IMMEDIATE
+  ":NONAME" compose "HERE  ' DOCOL CFA, ]"
+  ":" compose "HEADER :NONAME DROP"
 
   "RECURSE" compose "LATESTXT ," IS (IMMEDIATE or COMPILE_ONLY)
-  "LITERAL" compose "'CFA LIT , ," IS (IMMEDIATE or COMPILE_ONLY)
+  "LITERAL" compose "' LIT CFA, ," IS (IMMEDIATE or COMPILE_ONLY)
 
   ">MARK" compose "HERE 0 ," IS COMPILE_ONLY
   ">RESOLVE" compose "DUP HERE SWAP - SWAP !" IS COMPILE_ONLY
   "<MARK" compose "HERE" IS COMPILE_ONLY
   "<RESOLVE" compose "HERE - ," IS COMPILE_ONLY
 
-  "IF" compose "'CFA 0BRANCH , >MARK" IS (IMMEDIATE or COMPILE_ONLY)
-  "UNLESS" compose "'CFA 0= , IF" IS (IMMEDIATE or COMPILE_ONLY)
+  "IF" compose "' 0BRANCH CFA, >MARK" IS (IMMEDIATE or COMPILE_ONLY)
+  "UNLESS" compose "' 0= CFA, IF" IS (IMMEDIATE or COMPILE_ONLY)
   "THEN" compose ">RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
-  "ELSE" compose "'CFA BRANCH , >MARK SWAP >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "ELSE" compose "' BRANCH CFA, >MARK SWAP >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
 
   "BEGIN" compose "<MARK" IS (IMMEDIATE or COMPILE_ONLY)
-  "UNTIL" compose "'CFA 0BRANCH , <RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
-  "AGAIN" compose "'CFA BRANCH , <RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
-  "WHILE" compose "'CFA 0BRANCH , >MARK" IS (IMMEDIATE or COMPILE_ONLY)
-  "REPEAT" compose "'CFA BRANCH , SWAP <RESOLVE >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "UNTIL" compose "' 0BRANCH CFA, <RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "AGAIN" compose "' BRANCH CFA, <RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
+  "WHILE" compose "' 0BRANCH CFA, >MARK" IS (IMMEDIATE or COMPILE_ONLY)
+  "REPEAT" compose "' BRANCH CFA, SWAP <RESOLVE >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
 
   // TODO do-loop
   //  "DO" compose { "0 HERE  'CFA 2>R ,"()  } IS (IMMEDIATE or COMPILE_ONLY)
@@ -537,11 +586,47 @@ internal fun initDictionary(d: Dictionary) {
   //  "+LOOP" compose { ""() } IS (IMMEDIATE or COMPILE_ONLY)
   //  "LOOP" compose { "'CFA 1 , +LOOP"()} IS (IMMEDIATE or COMPILE_ONLY)
 
-  "LATER>" compose "'CFA R> ,  'CFA EXECUTE ," IS (IMMEDIATE or COMPILE_ONLY)
+  "LATER>" compose "' R> CFA,  ' EXECUTE CFA," IS (IMMEDIATE or COMPILE_ONLY)
+
+  val strbufLen = 1024
+  val strbufPtr = d.here
+  d.allot(strbufLen)
+  strbufPtr CONSTANT "(SBUF)"
+  strbufLen CONSTANT "(#SBUF)"
+  0 VARIABLE "(>SBUF)"
+
+  val strTooLarge = d.here
+  d.appendStr("Data Buffer Overflow")
+
+  "(SSAVE)" compose {
+    "DUP (#SBUF) >"()
+    cbranch("toolarge")
+    "$strTooLarge COUNT TYPE ABORT"()
+    label("toolarge")
+    "DUP (>SBUF) @ + (#SBUF) >"()
+    cbranch("zset")
+    "1337 ."()
+    "0 (>SBUF) !"()
+    label("zset")
+    "(>SBUF) @ (SBUF) + OVER 2>R"()
+    "2DUP (SBUF) (>SBUF) @ + SWAP MOVE NIP"()
+    "(>SBUF) +!"()
+    "2R>"()
+  }
 
   "(S\")" { data.push(fip + 1); data.push(mem[fip].i); fip += mem[fip] + 1 } IS COMPILE_ONLY
-  "S\"" compose "'CFA (S\") ,  ${'"'.b} WORD COUNT 1+ ALLOT DROP" IS (IMMEDIATE or COMPILE_ONLY)
-  ".\"" compose "S\"  'CFA TYPE ," IS (IMMEDIATE or COMPILE_ONLY)
+  "(IS\")" compose "${'"'.b} WORD COUNT (SSAVE)"
+  "(CS\")" compose "' (S\") CFA,  ${'"'.b} WORD COUNT 1+ ALLOT DROP"
+  "S\"" compose {
+    "STATE @"()
+    cbranch("interpret")
+    "(CS\") EXIT"()
+    label("interpret")
+    "(IS\")"()
+  } IS IMMEDIATE
+
+  ".\"" compose "S\"  ' TYPE CFA," IS (IMMEDIATE or COMPILE_ONLY)
+  "ABORT\"" compose ".\"  ' ABORT CFA," IS (IMMEDIATE or COMPILE_ONLY)
 
   "WORDS" compose {
     "LATEST @"()
@@ -559,4 +644,12 @@ internal fun initDictionary(d: Dictionary) {
     "@"()
     branch("loop")
   }
+
+  "(CON)" IS HIDDEN
+  "NEXT-CHAR" IS HIDDEN
+  "(IS\")" IS HIDDEN
+  "(CS\")" IS HIDDEN
+  "(FLAG-IMMED)" IS HIDDEN
+  "(FLAG-CO)" IS HIDDEN
+  "(FLAG-HIDDEN)" IS HIDDEN
 }
