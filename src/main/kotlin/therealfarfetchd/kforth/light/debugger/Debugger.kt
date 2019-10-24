@@ -18,8 +18,8 @@ class Debugger(val forth: Forth) : JFrame("KForth Debugger") {
     layout = BorderLayout(0, 0)
     setSize(800, 600)
     setLocationRelativeTo(null)
-    add(vStackElements, BorderLayout.WEST)
-    add(rStackElements, BorderLayout.EAST)
+    add(JScrollPane(vStackElements), BorderLayout.WEST)
+    add(JScrollPane(rStackElements), BorderLayout.EAST)
 
     add(JScrollPane(memory), BorderLayout.CENTER)
 
