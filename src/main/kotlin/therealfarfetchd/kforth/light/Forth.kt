@@ -1,5 +1,6 @@
 package therealfarfetchd.kforth.light
 
+import therealfarfetchd.kforth.light.debugger.Debugger
 import therealfarfetchd.kforth.light.term.SystemTerminalLight
 import java.io.FileOutputStream
 
@@ -64,6 +65,8 @@ class Forth {
 fun main(args: Array<str>) {
 //  SystemTerminal.init()
   val f = Forth()
+  val d = Debugger(f)
+  d.isVisible = true
   dumpMemory(f)
   f.term = SystemTerminalLight
   f.mainLoop()

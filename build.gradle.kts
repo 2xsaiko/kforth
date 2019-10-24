@@ -37,6 +37,8 @@ dependencies {
   compile(kotlinModule("stdlib-jre8", kotlin_version))
 
   // compile("org.jline", "jline", jline_version)
+
+  testCompile("junit:junit:4.12")
 }
 
 tasks.withType<KotlinCompile> {

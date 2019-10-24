@@ -13,7 +13,7 @@ import kotlin.experimental.or
 // n+1: data  - program data
 
 @Suppress("PropertyName", "MemberVisibilityCanBePrivate")
-class Dictionary(val ptr: i32, val mem: Memory, internal val forth: Forth) {
+class Dictionary(ptr: i32, val mem: Memory, internal val forth: Forth) {
   var here = ptr
   var latest = 0
     get() = if (LATEST_val == 0) field else mem.read32(LATEST_val)
@@ -35,8 +35,8 @@ class Dictionary(val ptr: i32, val mem: Memory, internal val forth: Forth) {
   internal var LATEST_val = 0
   internal var CISL_val = 0
 
-  var primitives: Map<i32, (Forth) -> Unit> = emptyMap()
-  var specialReturn: Set<i32> = emptySet()
+  private val primitives: MutableMap<i32, (Forth) -> Unit> = mutableMapOf()
+  private val specialReturn: MutableSet<i32> = mutableSetOf()
 
   init {
     initDictionary(this)
@@ -126,7 +126,7 @@ class Dictionary(val ptr: i32, val mem: Memory, internal val forth: Forth) {
   fun createPrimitive(name: str, specialReturn: bool, op: (Forth) -> Unit) {
     createHeader(name)
     resetFlags(latest, WordFlag.Hidden)
-    primitives += here to op
+    primitives[here] = op
     if (specialReturn) this.specialReturn += here
     append32(DOPRI_ptr)
   }
