@@ -12,7 +12,7 @@ class Debugger(val forth: Forth) : JFrame("KForth Debugger") {
 
   private val vStackElements = JList<String>()
   private val rStackElements = JList<String>()
-  private val memory = JTable(MemoryTableModel(forth.mem))
+  private val memory = JTable(MemoryTableModel(forth.mem, { AddressMode.I32 }))
 
   init {
     layout = BorderLayout(0, 0)
