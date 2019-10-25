@@ -1,9 +1,9 @@
 package therealfarfetchd.kforth.light.term
 
 import therealfarfetchd.kforth.light.Terminal
+import therealfarfetchd.kforth.light.char
 import therealfarfetchd.kforth.light.i32
 import therealfarfetchd.kforth.light.str
-import therealfarfetchd.kforth.light.u16
 
 object SystemTerminalLight : Terminal {
   private val istr = System.`in`.bufferedReader()
@@ -12,12 +12,12 @@ object SystemTerminalLight : Terminal {
 
   override fun height(): i32 = 50
 
-  override fun read(): u16? {
+  override fun read(): char? {
     println("WARNING: KEY? or similar is not reliable for this terminal implementation.")
     return null
   }
 
-  override fun readBlocking(): u16 {
+  override fun readBlocking(): char {
     return readLine(1).firstOrNull() ?: readBlocking()
   }
 
@@ -25,7 +25,7 @@ object SystemTerminalLight : Terminal {
     return istr.readLine()?.run { slice(0 until minOf(len, length)) } ?: ""
   }
 
-  override fun write(c: u16) {
+  override fun write(c: char) {
     print(c)
     System.out.flush()
   }

@@ -5,13 +5,13 @@ import kotlin.experimental.and
 // Rust, boys!
 
 internal typealias bool = Boolean
-internal typealias u16 = Char
+internal typealias char = Char
 internal typealias i8 = Byte
 internal typealias i16 = Short
 internal typealias i32 = Int
 internal typealias i64 = Long
-internal typealias d32 = Float
-internal typealias d64 = Double
+internal typealias f32 = Float
+internal typealias f64 = Double
 internal typealias str = String
 
 val i8.v get() = this != 0.b
@@ -26,11 +26,11 @@ val i16.c get() = toChar()
 val i16.i get() = toInt() and 0xFFFF
 val i16.l get() = toLong() and 0xFFFF
 
-val u16.v get() = this != 0.c
-val u16.b get() = toByte()
-val u16.s get() = toShort()
-val u16.i get() = toInt()
-val u16.l get() = toLong()
+val char.v get() = this != 0.c
+val char.b get() = toByte()
+val char.s get() = toShort()
+val char.i get() = toInt()
+val char.l get() = toLong()
 
 val i32.v get() = this != 0
 val i32.b get() = toByte()
@@ -52,13 +52,13 @@ infix fun i16.shl(n: i32) = (i shl n).s
 infix fun i16.shr(n: i32) = (i shr n).s
 infix fun i16.ushr(n: i32) = (i ushr n).s
 
-infix fun u16.and(other: u16): u16 = (this.toInt() and other.toInt()).toChar()
-infix fun u16.or(other: u16): u16 = (this.toInt() or other.toInt()).toChar()
-infix fun u16.xor(other: u16): u16 = (this.toInt() xor other.toInt()).toChar()
-fun u16.inv(): u16 = (this.toInt().inv()).toChar()
-infix fun u16.shl(n: i32) = (i shl n).c
-infix fun u16.shr(n: i32) = (i shr n).c
-infix fun u16.ushr(n: i32) = (i ushr n).c
+infix fun char.and(other: char): char = (this.toInt() and other.toInt()).toChar()
+infix fun char.or(other: char): char = (this.toInt() or other.toInt()).toChar()
+infix fun char.xor(other: char): char = (this.toInt() xor other.toInt()).toChar()
+fun char.inv(): char = (this.toInt().inv()).toChar()
+infix fun char.shl(n: i32) = (i shl n).c
+infix fun char.shr(n: i32) = (i shr n).c
+infix fun char.ushr(n: i32) = (i ushr n).c
 
 fun i8.asBytes() = listOf(this)
 
@@ -67,7 +67,7 @@ fun i16.asBytes() = listOf(
   (this shr 8).b
 )
 
-fun u16.asBytes() = listOf(
+fun char.asBytes() = listOf(
   this.b,
   (this shr 8).b
 )
