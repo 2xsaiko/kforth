@@ -581,10 +581,11 @@ internal fun initDictionary(d: Dictionary) {
   "REPEAT" compose "' BRANCH CFA, SWAP <RESOLVE >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
 
   // TODO do-loop
-  //  "DO" compose { "0 HERE  'CFA 2>R ,"()  } IS (IMMEDIATE or COMPILE_ONLY)
-  //  "?DO" compose { "'CFA ?2DUP ,  'CFA <> ,  'CFA 0BRANCH ,  HERE  'CFA 0 ,  HERE  'CFA 2>R ,"() } IS (IMMEDIATE or COMPILE_ONLY)
-  //  "+LOOP" compose { ""() } IS (IMMEDIATE or COMPILE_ONLY)
-  //  "LOOP" compose { "'CFA 1 , +LOOP"()} IS (IMMEDIATE or COMPILE_ONLY)
+  "DO" compose { "0 HERE  'CFA 2>R ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "?DO" compose { "'CFA ?2DUP ,  'CFA <> ,  'CFA 0BRANCH ,  HERE  'CFA 0 ,  HERE  'CFA 2>R ,"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "+LOOP" compose { ""() } IS (IMMEDIATE or COMPILE_ONLY)
+  "LOOP" compose { "'CFA 1 , +LOOP"() } IS (IMMEDIATE or COMPILE_ONLY)
+  "UNLOOP" compose { "RDROP RDROP"() }
 
   "LATER>" compose "' R> CFA,  ' EXECUTE CFA," IS (IMMEDIATE or COMPILE_ONLY)
 
