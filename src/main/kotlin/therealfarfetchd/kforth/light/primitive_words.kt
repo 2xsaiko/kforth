@@ -580,12 +580,14 @@ internal fun initDictionary(d: Dictionary) {
   "WHILE" compose "' 0BRANCH CFA, >MARK" IS (IMMEDIATE or COMPILE_ONLY)
   "REPEAT" compose "' BRANCH CFA, SWAP <RESOLVE >RESOLVE" IS (IMMEDIATE or COMPILE_ONLY)
 
-  // TODO do-loop
-  "DO" compose { "0 HERE  'CFA 2>R ,"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "?DO" compose { "'CFA ?2DUP ,  'CFA <> ,  'CFA 0BRANCH ,  HERE  'CFA 0 ,  HERE  'CFA 2>R ,"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "+LOOP" compose { ""() } IS (IMMEDIATE or COMPILE_ONLY)
-  "LOOP" compose { "'CFA 1 , +LOOP"() } IS (IMMEDIATE or COMPILE_ONLY)
-  "UNLOOP" compose { "RDROP RDROP"() }
+  "(DO)" compose "<MARK ' 2>R CFA," IS (IMMEDIATE or COMPILE_ONLY)
+  "(?DO)" compose "2DUP <>"
+  "(LOOP)" compose "ROT + 2DUP =" IS COMPILE_ONLY
+  "DO" compose "0 (DO)" IS (IMMEDIATE or COMPILE_ONLY)
+  "?DO" compose "' (?DO) CFA,  ' 0BRANCH CFA, >MARK  (DO)" IS (IMMEDIATE or COMPILE_ONLY)
+  "+LOOP" compose "' 2R> CFA,  ' (LOOP) CFA, ' 0BRANCH CFA, <RESOLVE >RESOLVE ' 2DROP CFA," IS (IMMEDIATE or COMPILE_ONLY)
+  "LOOP" compose "' 1 CFA, +LOOP" IS (IMMEDIATE or COMPILE_ONLY)
+  "UNLOOP" compose "RDROP RDROP"
 
   "LATER>" compose "' R> CFA,  ' EXECUTE CFA," IS (IMMEDIATE or COMPILE_ONLY)
 
