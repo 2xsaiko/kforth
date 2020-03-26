@@ -1,0 +1,32 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.71'
+    id 'application'
+}
+
+group = 'therealfarfetchd.kforth'
+version = '1.0.0'
+
+application {
+    mainClassName = 'therealfarfetchd.kforth.light.ForthKt'
+    applicationName = 'kforth'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}")
+
+    testCompile('junit:junit:4.12')
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    kotlinOptions.jvmTarget = '1.8'
+    kotlinOptions.freeCompilerArgs += '-XX:ExperimentalUnsignedTypes'
+}
+
+jar {
+    manifest { attributes.'Main-Class' = application.mainClassName }
+    from(configurations.compile.collect { if (it.isDirectory()) it else zipTree(it) })
+}

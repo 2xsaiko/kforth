@@ -62,15 +62,15 @@ class Forth {
   }
 }
 
-fun main(args: Array<str>) {
-//  SystemTerminal.init()
+fun main() {
+  //  SystemTerminal.init()
   val f = Forth()
   val d = Debugger(f)
   d.isVisible = true
   dumpMemory(f)
   f.term = SystemTerminalLight
   f.mainLoop()
-//  SystemTerminal.deinit()
+  //  SystemTerminal.deinit()
 }
 
 fun dumpMemory(f: Forth) {
